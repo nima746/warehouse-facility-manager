@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {seed,validate,validateBackup,nextDate,escapeHTML} from '../dist/domain.js';
+test('示範資料完整且關聯有效',()=>assert.equal(validateBackup(seed()).version,1));
+test('保養跨月底與閏年日期',()=>{assert.equal(nextDate('2028-02-28',1),'2028-02-29');assert.equal(nextDate('2026-12-31',1),'2027-01-01');});
+test('庫存不可為負數或小數',()=>{for(const quantity of [-1,1.5])assert.throws(()=>validate('parts',{name:'測試',zone:'A',quantity,minimum:1,unit:'個'}));});
+test('工單不可參照不存在設備',()=>{const s=seed();assert.throws(()=>validate('orders',{...s.orders[0],asset:'不存在'},s.assets));});
+test('保養週期不可為零',()=>{const s=seed();assert.throws(()=>validate('plans',{...s.plans[0],interval:0},s.assets));});
+test('拒絕日期溢位',()=>{const s=seed();assert.throws(()=>validate('assets',{...s.assets[0],due:'2026-02-31'}));});
+test('還原拒絕重複編號與錯誤格式',()=>{const s=seed();s.assets.push({...s.assets[0]});assert.throws(()=>validateBackup(s));assert.throws(()=>validateBackup({version:2}));});
+test('使用者文字經 HTML 編碼',()=>assert.equal(escapeHTML('<img onerror="x">'), '&lt;img onerror=&quot;x&quot;&gt;'));
